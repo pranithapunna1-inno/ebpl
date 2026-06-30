@@ -1,0 +1,75 @@
+TRANSMITTER CODE
+
+#include <RH_ASK.h>
+#include <SPI.h>
+
+RH_ASK driver;
+
+const int button = 2;
+
+void setup()
+{
+    pinMode(button, INPUT_PULLUP);
+
+    if (!driver.init())
+        Serial.println("ASK init failed");
+}
+
+void loop()
+{
+    if (digitalRead(button) == LOW)
+    {
+        const char *msg = "... --- ...";   // SOS in Morse
+        driver.send((uint8_t *)msg, strlen(msg));
+        driver.waitPacketSent();
+
+        delay(1000);
+    }
+}
+
+
+RECEIVER CODE
+
+#include <RH_ASK.h>
+#include <SPI.h>
+
+RH_ASK driver;
+
+const int buzzer = 8;
+const int led = 13;
+
+void setup()
+{
+    pinMode(buzzer, OUTPUT);
+    pinMode(led, OUTPUT);
+
+    Serial.begin(9600);
+
+    if (!driver.init())
+        Serial.println("ASK init failed");
+}
+
+void loop()
+{
+    uint8_t buf[20];
+    uint8_t buflen = sizeof(buf);
+
+    if (driver.recv(buf, &buflen))
+    {
+        buf[buflen] = '\0';
+
+        Serial.print("Received: ");
+        Serial.println((char*)buf);
+
+        if(strcmp((char*)buf,"... --- ...")==0)
+        {
+            digitalWrite(led,HIGH);
+            tone(buzzer,1000);
+
+            delay(3000);
+
+            noTone(buzzer);
+            digitalWrite(led,LOW);
+        }
+    }
+}
